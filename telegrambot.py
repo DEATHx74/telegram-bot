@@ -57,7 +57,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             except:
                 await update.message.reply_text(
-                    f"⚠️ لازم تبدأ محادثة خاصة مع البوت الأول اضغط على الرابط ثم (اضغط Start او بدء): https://t.me/{BOT_USERNAME}"
+                    f"⚠️ لازم تبدأ محادثة خاصة مع البوت الأول اضغط على الرابط ثم (اضغط Start او بدء) بعدها ارجع الجروب هنا واكتب نفس الامر تاني: https://t.me/{BOT_USERNAME}"
                 )
                 print("❗ المستخدم لم يبدأ محادثة مع البوت")
                 return
