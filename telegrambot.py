@@ -2,8 +2,8 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, MessageHandler, CommandHandler, ContextTypes, filters
 import os
 
-TOKEN = '7626736625:AAE5tyStesP1LWu9rYsdCy03HLI6kcywF24'
-BOT_USERNAME = 'AlboraninBot'
+TOKEN = '7640145276:AAFyPxp-7BgFc6bUJduJfWLg-AU0l265GBM'
+BOT_USERNAME = 'AlboraBot'
 
 # الكلمات المستهدفة + الرد + الرابط
 KEYWORD_RESPONSE_MAP = {
