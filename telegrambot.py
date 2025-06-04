@@ -3,7 +3,7 @@ from telegram.ext import ApplicationBuilder, MessageHandler, CommandHandler, Con
 import os
 
 TOKEN = '7640145276:AAFyPxp-7BgFc6bUJduJfWLg-AU0l265GBM'
-BOT_USERNAME = 'AlboraBot'
+BOT_USERNAME = 'Alboran_Bot'
 
 # الكلمات المستهدفة + الرد + الرابط
 KEYWORD_RESPONSE_MAP = {
@@ -29,7 +29,7 @@ def log_user(user):
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "👋 أهلاً بيك! ابعتلي اسم المجموعة أو الرابط اللي بتدور عليه، وأنا هبعتهولك على الخاص.\n\n"
-        "لو لسه مش بدأ محادثة خاصة معايا، دوس هنا: https://t.me/AlboraninBot"
+        "لو لسه مش بدأ محادثة خاصة معايا، دوس هنا: https://t.me/AlboranBot"
     )
 
 # التعامل مع الرسائل العادية
