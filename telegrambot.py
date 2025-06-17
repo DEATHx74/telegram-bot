@@ -100,8 +100,8 @@ async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if len(context.args) < 2:
-        await update.message.reply_text("❗ استخدم الأمر كده:
-`/add اسم_المسلسل رقم_الحلقة`", parse_mode="Markdown")
+        await update.message.reply_text("❗ استخدم الأمر كده:\n`/add اسم_المسلسل رقم_الحلقة`", parse_mode="Markdown")
+
         return
 
     series_name = context.args[0]
@@ -163,8 +163,7 @@ async def delete_episode(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if len(context.args) < 2:
-        await update.message.reply_text("❗ استخدم الأمر كده:
-`/delete اسم_المسلسل رقم_الحلقة`", parse_mode="Markdown")
+        await update.message.reply_text("❗ استخدم الأمر كده:\n`/delete اسم_المسلسل رقم_الحلقة`", parse_mode="Markdown")
         return
 
     series_name = context.args[0]
@@ -190,5 +189,5 @@ app.add_handler(MessageHandler(filters.FORWARDED & filters.TEXT, handle_forward)
 app.add_handler(MessageHandler(filters.FORWARDED & filters.VIDEO, handle_forward))
 app.add_handler(MessageHandler(filters.FORWARDED & filters.PHOTO, handle_forward))
 
-print("✅ البوت بإدارة المسلسلات شغّال...")
+print("✅ بوت إدارة المسلسلات شغّال...")
 app.run_polling()
