@@ -53,14 +53,19 @@ async def is_user_subscribed(user_id: int, context: ContextTypes.DEFAULT_TYPE) -
         return False
 
 def generate_episode_buttons(episodes: dict, series_name: str, per_row: int = 4):
-    keys_sorted = sorted(episodes.keys(), key=lambda x: int(x) if x.isdigit() else x)
+    try:
+        keys_sorted = sorted(episodes.keys(), key=lambda x: int(x))
+    except:
+        keys_sorted = sorted(episodes.keys())
+
     buttons = []
     for i in range(0, len(keys_sorted), per_row):
         row = [
-            InlineKeyboardButton(f"{ep}", callback_data=f"episode|{series_name}|{ep}")
+            InlineKeyboardButton(f"حلقة {ep}", callback_data=f"episode|{series_name}|{ep}")
             for ep in keys_sorted[i:i+per_row]
         ]
         buttons.append(row)
+
     buttons.append([InlineKeyboardButton("🔙 رجوع", callback_data="back_to_series")])
     return buttons
 
