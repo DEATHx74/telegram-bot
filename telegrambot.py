@@ -39,7 +39,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if not await is_user_subscribed(user_id, context):
         await update.message.reply_text("⚠️ عذرًا، لازم تشترك في القناة أولاً لاستخدام البوت.\n📢 قناة البوت: {0}".format(channel_username))
-📢 قناة البوت: {0}".format("@YourChannelUsername"))
         return
 
     series_data = load_series_data()
@@ -93,7 +92,6 @@ async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if not await is_user_subscribed(user_id, context):
         await update.message.reply_text("⚠️ عذرًا، لازم تشترك في القناة أولاً لاستخدام البوت.\n📢 قناة البوت: {0}".format(channel_username))
-📢 قناة البوت: {0}".format("@YourChannelUsername"))
         return
 
     user_id = update.effective_user.id
@@ -140,7 +138,6 @@ async def list_series(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if not await is_user_subscribed(user_id, context):
         await update.message.reply_text("⚠️ عذرًا، لازم تشترك في القناة أولاً لاستخدام البوت.\n📢 قناة البوت: {0}".format(channel_username))
-📢 قناة البوت: {0}".format("@YourChannelUsername"))
         return
 
     series_data = load_series_data()
