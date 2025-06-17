@@ -46,12 +46,18 @@ def generate_episode_buttons(episodes: dict, series_name: str, per_row: int = 4)
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if not await is_user_subscribed(user_id, context):
-        await update.message.reply_text("⚠️ لازم تشترك في القناة أولاً.\n📢 {}".format(channel_username))
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🔄 تحقق من الاشتراك", callback_data="recheck_sub")]
+        ])
+        await update.message.reply_text(
+            "⚠️ لازم تشترك في القناة الأول.\n📢 {}".format(channel_username),
+            reply_markup=keyboard
+        )
         return
 
     series_data = load_series_data()
     if not series_data:
-        await update.message.reply_text("📂 مفيش مسلسلات مضافة.")
+        await update.message.reply_text("📂 مفيش مسلسلات مضافة حتى الآن.")
         return
 
     buttons = [
@@ -68,6 +74,14 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     data = query.data
     series_data = load_series_data()
+
+    if data == "recheck_sub":
+        user_id = query.from_user.id
+        if not await is_user_subscribed(user_id, context):
+            await query.message.reply_text("⚠️ لسه مش مشترك أو التحقق اتأخر شوية. حاول تاني بعد 10 ثواني.")
+            return
+        await start(update, context)
+        return
 
     if data == "back_to_series":
         buttons = [
