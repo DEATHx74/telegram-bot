@@ -57,10 +57,9 @@ async def is_user_subscribed(user_id: int, context: ContextTypes.DEFAULT_TYPE) -
         return False
 
 def generate_episode_buttons(episodes: dict, series_name: str, page: int = 0, per_row: int = 4):
-    keys_sorted = sorted([k for k in episodes.keys() if k.isdigit()], key=lambda x: int(x))
+    keys_sorted = sorted([k.strip() for k in episodes.keys() if k.strip().isdigit()], key=lambda x: int(x))
     total = len(keys_sorted)
 
-    # إذا أقل من 100 حلقة، اعرضهم كلهم بدون صفحات
     if total <= EPISODES_PER_PAGE:
         buttons = []
         for i in range(0, total, per_row):
@@ -72,7 +71,6 @@ def generate_episode_buttons(episodes: dict, series_name: str, page: int = 0, pe
         buttons.append([InlineKeyboardButton("🔙 رجوع", callback_data="back_to_series")])
         return buttons
 
-    # لو أكتر من 100 حلقة → فعل الصفحات
     start = page * EPISODES_PER_PAGE
     end = start + EPISODES_PER_PAGE
     paginated = keys_sorted[start:end]
@@ -95,6 +93,7 @@ def generate_episode_buttons(episodes: dict, series_name: str, page: int = 0, pe
 
     buttons.append([InlineKeyboardButton("🔙 رجوع", callback_data="back_to_series")])
     return buttons
+
 
 # ========== /start ==========
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -156,7 +155,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     elif data.startswith("episode|"):
         _, series_name, ep_number = data.split("|")
-        episode = series_data.get(series_name, {}).get(ep_number)
+        episode = series_data.get(series_name, {}).get(ep_number.strip())
         if not episode:
             await query.message.reply_text("⚠️ الحلقة غير موجودة.")
             return
@@ -209,9 +208,9 @@ async def handle_forward(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if series_name not in series_data:
         series_data[series_name] = {}
 
-    series_data[series_name][episode_number] = {
-        "chat_id": update.message.forward_from_chat.id,
-        "message_id": update.message.forward_from_message_id
+    series_data[series_name][episode_number.strip()] = {
+    "chat_id": update.message.forward_from_chat.id,
+    "message_id": update.message.forward_from_message_id
     }
 
     save_series_data(series_data)
