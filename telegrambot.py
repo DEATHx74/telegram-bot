@@ -5,14 +5,13 @@ import os
 from datetime import datetime
 
 TOKEN = "7820235468:AAFLoJXoVYGrcpw7B_dx4BlTXKFfEkpexjc"
-ADMIN_IDS = [829510841]  # حط ID الأدمن هنا
-channel_id = -1002698646841  # ID القناة (تأكد إنه صح)
+ADMIN_IDS = [829510841]
+channel_id = -1002698646841  # تأكد من ID القناة
 
 DATA_FILE = "series_data.json"
 USAGE_LOG_FILE = "usage_log.json"
 PENDING_ADDS = {}
 
-# ========== أدوات التعامل مع الملفات ==========
 def load_series_data():
     if not os.path.exists(DATA_FILE):
         return {}
@@ -27,7 +26,7 @@ def log_usage(user, action, extra=""):
     log_entry = {
         "user_id": user.id,
         "username": user.username or "",
-        "name": f"{user.first_name} {user.last_name or ''}",
+        "name": f"{user.first_name} {user.last_name or ''}".strip(),
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "action": action,
         "extra": extra
@@ -37,7 +36,10 @@ def log_usage(user, action, extra=""):
             json.dump([log_entry], f, ensure_ascii=False, indent=2)
     else:
         with open(USAGE_LOG_FILE, "r+", encoding="utf-8") as f:
-            data = json.load(f)
+            try:
+                data = json.load(f)
+            except json.JSONDecodeError:
+                data = []
             data.append(log_entry)
             f.seek(0)
             json.dump(data, f, ensure_ascii=False, indent=2)
@@ -53,11 +55,7 @@ async def is_user_subscribed(user_id: int, context: ContextTypes.DEFAULT_TYPE) -
         return False
 
 def generate_episode_buttons(episodes: dict, series_name: str, per_row: int = 4):
-    try:
-        keys_sorted = sorted(episodes.keys(), key=lambda x: int(x))
-    except:
-        keys_sorted = sorted(episodes.keys())
-
+    keys_sorted = sorted(episodes.keys(), key=lambda x: int(x) if x.isdigit() else x)
     buttons = []
     for i in range(0, len(keys_sorted), per_row):
         row = [
@@ -65,7 +63,6 @@ def generate_episode_buttons(episodes: dict, series_name: str, per_row: int = 4)
             for ep in keys_sorted[i:i+per_row]
         ]
         buttons.append(row)
-
     buttons.append([InlineKeyboardButton("🔙 رجوع", callback_data="back_to_series")])
     return buttons
 
@@ -73,17 +70,18 @@ def generate_episode_buttons(episodes: dict, series_name: str, per_row: int = 4)
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     if not await is_user_subscribed(user.id, context):
+        bot_username = (await context.bot.get_me()).username
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🔄 تحقق من الاشتراك", callback_data="recheck_sub")]
+            [InlineKeyboardButton("✅ إبدأ الآن", url=f"https://t.me/DeAlbora_Bot?start")]
         ])
         await update.message.reply_text(
-            "⚠️ لازم تشترك في القناة الأول.\n📢 https://t.me/AlboraninTV",
+            "⚠️ لازم تشترك في القناة الأول وبعدها ارجع اضغط على زر "إبدأ الآن".
+📢 https://t.me/AlboraninTV",
             reply_markup=keyboard
         )
         return
 
     log_usage(user, "start")
-
     series_data = load_series_data()
     if not series_data:
         await update.message.reply_text("📂 مفيش مسلسلات مضافة حتى الآن.")
@@ -104,13 +102,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = query.data
     user = query.from_user
     series_data = load_series_data()
-
-    if data == "recheck_sub":
-        if not await is_user_subscribed(user.id, context):
-            await query.message.reply_text("⚠️ لسه مش مشترك أو التحقق اتأخر شوية. حاول تاني بعد 10 ثواني.")
-            return
-        await start(update, context)
-        return
 
     if data == "back_to_series":
         buttons = [
@@ -146,12 +137,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             from_chat_id=episode["chat_id"],
             message_id=episode["message_id"]
         )
-        await query.message.reply_text(
-            "⬅️ رجوع للقائمة:",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("🏠 رجوع للقائمة", callback_data="back_to_series")]
-            ])
-        )
 
 async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
@@ -162,7 +147,8 @@ async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ مش مسموحلك تستخدم الأمر ده.")
         return
     if len(context.args) < 2:
-        await update.message.reply_text("❗ استخدم الأمر كده:\n`/add اسم_المسلسل رقم_الحلقة`", parse_mode="Markdown")
+        await update.message.reply_text("❗ استخدم الأمر كده:
+`/add اسم_المسلسل رقم_الحلقة`", parse_mode="Markdown")
         return
 
     series_name = context.args[0]
@@ -207,11 +193,13 @@ async def list_series(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     log_usage(user, "list_series")
+    text = "📚 قائمة المسلسلات والحلقات:
 
-    text = "📚 قائمة المسلسلات والحلقات:\n\n"
+"
     for series, episodes in series_data.items():
-        ep_list = ", ".join(sorted(episodes.keys(), key=lambda x: int(x) if x.isdigit() else x))
-        text += f"• {series} ({len(episodes)} حلقات): {ep_list}\n"
+        ep_list = ", ".join(f"حلقة {ep}" for ep in sorted(episodes.keys(), key=lambda x: int(x) if x.isdigit() else x))
+        text += f"• {series} ({len(episodes)} حلقات): {ep_list}
+"
     await update.message.reply_text(text)
 
 async def delete_episode(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -220,7 +208,8 @@ async def delete_episode(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ مش مسموحلك بالأمر ده.")
         return
     if len(context.args) < 2:
-        await update.message.reply_text("❗ استخدم كده:\n`/delete اسم_المسلسل رقم_الحلقة`", parse_mode="Markdown")
+        await update.message.reply_text("❗ استخدم كده:
+`/delete اسم_المسلسل رقم_الحلقة`", parse_mode="Markdown")
         return
 
     series_name = context.args[0]
@@ -250,8 +239,11 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     users = set()
     if os.path.exists(USAGE_LOG_FILE):
         with open(USAGE_LOG_FILE, "r", encoding="utf-8") as f:
-            logs = json.load(f)
-            users = {entry["user_id"] for entry in logs}
+            try:
+                logs = json.load(f)
+                users = {entry["user_id"] for entry in logs}
+            except json.JSONDecodeError:
+                pass
 
     text = f"""📊 لوحة تحكم البوت:
 
