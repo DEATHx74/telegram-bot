@@ -72,11 +72,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_user_subscribed(user.id, context):
         bot_username = (await context.bot.get_me()).username
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("✅ إبدأ الآن", url=f"https://t.me/DeAlbora_Bot?start")]
+            [InlineKeyboardButton("✅ إبدأ الآن", url=f"https://t.me/{bot_username}?start")]
         ])
         await update.message.reply_text(
-            "⚠️ لازم تشترك في القناة الأول وبعدها ارجع اضغط على زر "إبدأ الآن".
-📢 https://t.me/AlboraninTV",
+            '⚠️ لازم تشترك في القناة الأول في القناة:\n📢 https://t.me/AlboraninTV\n\nوبعدها ارجع اضغط على زر "إبدأ الآن".',
             reply_markup=keyboard
         )
         return
