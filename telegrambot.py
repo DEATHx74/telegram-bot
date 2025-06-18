@@ -57,7 +57,7 @@ async def is_user_subscribed(user_id: int, context: ContextTypes.DEFAULT_TYPE) -
         return False
 
 def generate_episode_buttons(episodes: dict, series_name: str, page: int = 0, per_row: int = 4):
-    keys_sorted = sorted(episodes.keys(), key=lambda x: int(x))
+    keys_sorted = sorted([k for k in episodes.keys() if k.isdigit()], key=lambda x: int(x))
     total = len(keys_sorted)
 
     # إذا أقل من 100 حلقة، اعرضهم كلهم بدون صفحات
@@ -144,14 +144,14 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if data.startswith("series|"):
-    parts = data.split("|")
-    series_name = parts[1]
-    page = int(parts[2]) if len(parts) > 2 else 0
-    episodes = series_data.get(series_name, {})
-    buttons = generate_episode_buttons(episodes, series_name, page)
-    await query.message.edit_text(
-        f"🎬 اختر الحلقة من {series_name}:",
-        reply_markup=InlineKeyboardMarkup(buttons)
+        parts = data.split("|")
+        series_name = parts[1]
+        page = int(parts[2]) if len(parts) > 2 else 0
+        episodes = series_data.get(series_name, {})
+        buttons = generate_episode_buttons(episodes, series_name, page)
+        await query.message.edit_text(
+            f"🎬 اختر الحلقة من {series_name}:",
+            reply_markup=InlineKeyboardMarkup(buttons)
         )
 
     elif data.startswith("episode|"):
