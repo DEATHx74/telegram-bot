@@ -5,14 +5,14 @@ import os
 from datetime import datetime
 
 TOKEN = "7820235468:AAFLoJXoVYGrcpw7B_dx4BlTXKFfEkpexjc"
-ADMIN_IDS = [829510841]  # ← عدل الـ ID بتاعك هنا
-channel_id = -1002698646841  # ← عدل لـ ID القناة الخاصة بك
+ADMIN_IDS = [829510841]
+channel_id = -1002698646841
 
 DATA_FILE = "series_data.json"
 USAGE_LOG_FILE = "usage_log.json"
 PENDING_ADDS = {}
 
-# ---------- الأدوات المساعدة ----------
+# ========== الأدوات ==========
 def load_series_data():
     if not os.path.exists(DATA_FILE):
         return {}
@@ -63,10 +63,12 @@ def generate_episode_buttons(episodes: dict, series_name: str, per_row: int = 4)
             for ep in keys_sorted[i:i+per_row]
         ]
         buttons.append(row)
-    buttons.append([InlineKeyboardButton("🔙 رجوع", callback_data="back_to_series")])
+    # زر واحد فقط للرجوع
+    if keys_sorted:
+        buttons.append([InlineKeyboardButton("🔙 رجوع", callback_data="back_to_series")])
     return buttons
 
-# ---------- /start ----------
+# ========== /start ==========
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     if not await is_user_subscribed(user.id, context):
@@ -94,7 +96,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=InlineKeyboardMarkup(buttons)
     )
 
-# ---------- التعامل مع الضغطات ----------
+# ========== الضغطات ==========
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -141,11 +143,12 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 [InlineKeyboardButton("🏠 رجوع للقائمة", callback_data="back_to_series")]
             ])
         )
-# ---------- /add ----------
+
+# ========== /add ==========
 async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     if not await is_user_subscribed(user.id, context):
-        await update.message.reply_text("⚠️ لازم تشترك في القناة.")
+        await update.message.reply_text("⚠️ لازم تشترك في القناة عشان تقدر تستخدم البوت، وبعدها ارجع هنا واضغط على ⬅️ /start مرة تانية.")
         return
     if not is_admin(user.id):
         await update.message.reply_text("❌ مش مسموحلك تستخدم الأمر ده.")
@@ -160,7 +163,7 @@ async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     log_usage(user, "add_episode", f"{series_name} - {episode_number}")
     await update.message.reply_text(f"✅ تمام، ابعتلي الحلقة (فورورد من الجروب) كحلقة {episode_number} لمسلسل {series_name}")
 
-# ---------- التقاط الرسالة الموجهة ----------
+# ========== التقاط الرسالة الموجهة ==========
 async def handle_forward(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     if user.id not in PENDING_ADDS:
@@ -185,11 +188,11 @@ async def handle_forward(update: Update, context: ContextTypes.DEFAULT_TYPE):
     log_usage(user, "saved_episode", f"{series_name} - {episode_number}")
     await update.message.reply_text(f"✅ تم حفظ الحلقة {episode_number} لمسلسل {series_name}")
 
-# ---------- /list ----------
+# ========== /list ==========
 async def list_series(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     if not await is_user_subscribed(user.id, context):
-        await update.message.reply_text("⚠️ لازم تشترك في القناة.")
+        await update.message.reply_text("⚠️ لازم تشترك في القناة عشان تقدر تستخدم البوت، وبعدها ارجع هنا واضغط على ⬅️ /start مرة تانية.")
         return
 
     series_data = load_series_data()
@@ -205,7 +208,7 @@ async def list_series(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text += f"• {series} ({len(episodes)} حلقات): {ep_list}\n"
     await update.message.reply_text(text)
 
-# ---------- /delete ----------
+# ========== /delete ==========
 async def delete_episode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     if not is_admin(user.id):
@@ -229,7 +232,7 @@ async def delete_episode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("❌ الحلقة أو المسلسل غير موجود.")
 
-# ---------- /admin ----------
+# ========== /admin ==========
 async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     if not is_admin(user.id):
@@ -261,7 +264,7 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 """
     await update.message.reply_text(text)
 
-# ---------- /logs ----------
+# ========== /logs ==========
 async def show_logs(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     if not is_admin(user.id):
@@ -285,14 +288,16 @@ async def show_logs(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(text)
 
-# ---------- تشغيل البوت ----------
+# ========== تشغيل البوت ==========
 app = ApplicationBuilder().token(TOKEN).build()
+
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("add", add))
 app.add_handler(CommandHandler("list", list_series))
 app.add_handler(CommandHandler("delete", delete_episode))
 app.add_handler(CommandHandler("admin", admin_panel))
 app.add_handler(CommandHandler("logs", show_logs))
+
 app.add_handler(CallbackQueryHandler(button_handler))
 app.add_handler(MessageHandler(filters.FORWARDED & filters.TEXT, handle_forward))
 app.add_handler(MessageHandler(filters.FORWARDED & filters.VIDEO, handle_forward))
@@ -300,3 +305,4 @@ app.add_handler(MessageHandler(filters.FORWARDED & filters.PHOTO, handle_forward
 
 print("✅ البوت شغّال...")
 app.run_polling()
+
