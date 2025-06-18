@@ -71,10 +71,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     if not await is_user_subscribed(user.id, context):
         keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("📢 اضغط هنا للاشتراك في القناة", url="https://t.me/AlboraninTV")],
             [InlineKeyboardButton("✅ إبدأ الآن", switch_inline_query_current_chat="/start")]
         ])
         await update.message.reply_text(
-            "⚠️ لازم تشترك في القناة الأول وبعدها اضغط على الزر لإرسال أمر /start.\n📢 https://t.me/AlboraninTV",
+            "⚠️ لازم تشترك في القناة الأول وبعدها اضغط على الزر لإرسال أمر /start.",
             reply_markup=keyboard
         )
         return
