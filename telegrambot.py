@@ -58,6 +58,21 @@ async def is_user_subscribed(user_id: int, context: ContextTypes.DEFAULT_TYPE) -
 
 def generate_episode_buttons(episodes: dict, series_name: str, page: int = 0, per_row: int = 4):
     keys_sorted = sorted(episodes.keys(), key=lambda x: int(x))
+    total = len(keys_sorted)
+
+    # إذا أقل من 100 حلقة، اعرضهم كلهم بدون صفحات
+    if total <= EPISODES_PER_PAGE:
+        buttons = []
+        for i in range(0, total, per_row):
+            row = [
+                InlineKeyboardButton(f"حلقة {ep}", callback_data=f"episode|{series_name}|{ep}")
+                for ep in keys_sorted[i:i+per_row]
+            ]
+            buttons.append(row)
+        buttons.append([InlineKeyboardButton("🔙 رجوع", callback_data="back_to_series")])
+        return buttons
+
+    # لو أكتر من 100 حلقة → فعل الصفحات
     start = page * EPISODES_PER_PAGE
     end = start + EPISODES_PER_PAGE
     paginated = keys_sorted[start:end]
@@ -73,7 +88,7 @@ def generate_episode_buttons(episodes: dict, series_name: str, page: int = 0, pe
     nav_buttons = []
     if page > 0:
         nav_buttons.append(InlineKeyboardButton("⬅️ السابق", callback_data=f"series|{series_name}|{page-1}"))
-    if end < len(keys_sorted):
+    if end < total:
         nav_buttons.append(InlineKeyboardButton("التالي ➡️", callback_data=f"series|{series_name}|{page+1}"))
     if nav_buttons:
         buttons.append(nav_buttons)
@@ -129,14 +144,14 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if data.startswith("series|"):
-        parts = data.split("|")
-        series_name = parts[1]
-        page = int(parts[2]) if len(parts) > 2 else 0
-        episodes = series_data.get(series_name, {})
-        buttons = generate_episode_buttons(episodes, series_name, page)
-        await query.message.edit_text(
-            f"🎬 اختر الحلقة من {series_name}:",
-            reply_markup=InlineKeyboardMarkup(buttons)
+    parts = data.split("|")
+    series_name = parts[1]
+    page = int(parts[2]) if len(parts) > 2 else 0
+    episodes = series_data.get(series_name, {})
+    buttons = generate_episode_buttons(episodes, series_name, page)
+    await query.message.edit_text(
+        f"🎬 اختر الحلقة من {series_name}:",
+        reply_markup=InlineKeyboardMarkup(buttons)
         )
 
     elif data.startswith("episode|"):
