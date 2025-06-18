@@ -5,14 +5,14 @@ import os
 from datetime import datetime
 
 TOKEN = "7820235468:AAFLoJXoVYGrcpw7B_dx4BlTXKFfEkpexjc"
-ADMIN_IDS = [829510841]  # ID الأدمن
-channel_id = -1002698646841  # ID القناة
+ADMIN_IDS = [829510841]  # ← عدل الـ ID بتاعك هنا
+channel_id = -1002698646841  # ← عدل لـ ID القناة الخاصة بك
 
 DATA_FILE = "series_data.json"
 USAGE_LOG_FILE = "usage_log.json"
 PENDING_ADDS = {}
 
-# ========== أدوات الملفات ==========
+# ---------- الأدوات المساعدة ----------
 def load_series_data():
     if not os.path.exists(DATA_FILE):
         return {}
@@ -24,25 +24,26 @@ def save_series_data(data):
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 def log_usage(user, action, extra=""):
-    log_entry = {
+    entry = {
         "user_id": user.id,
         "username": user.username or "",
-        "name": f"{user.first_name} {user.last_name or ''}",
+        "name": f"{user.first_name} {user.last_name or ''}".strip(),
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "action": action,
         "extra": extra
     }
-    if not os.path.exists(USAGE_LOG_FILE):
-        with open(USAGE_LOG_FILE, "w", encoding="utf-8") as f:
-            json.dump([log_entry], f, ensure_ascii=False, indent=2)
-    else:
-        with open(USAGE_LOG_FILE, "r+", encoding="utf-8") as f:
-            data = json.load(f)
-            data.append(log_entry)
-            f.seek(0)
-            json.dump(data, f, ensure_ascii=False, indent=2)
 
-# ========== أدوات مساعدة ==========
+    logs = []
+    if os.path.exists(USAGE_LOG_FILE):
+        with open(USAGE_LOG_FILE, "r", encoding="utf-8") as f:
+            try:
+                logs = json.load(f)
+            except json.JSONDecodeError:
+                logs = []
+    logs.append(entry)
+    with open(USAGE_LOG_FILE, "w", encoding="utf-8") as f:
+        json.dump(logs, f, ensure_ascii=False, indent=2)
+
 def is_admin(user_id):
     return user_id in ADMIN_IDS
 
@@ -54,11 +55,7 @@ async def is_user_subscribed(user_id: int, context: ContextTypes.DEFAULT_TYPE) -
         return False
 
 def generate_episode_buttons(episodes: dict, series_name: str, per_row: int = 4):
-    try:
-        keys_sorted = sorted(episodes.keys(), key=lambda x: int(x))
-    except:
-        keys_sorted = sorted(episodes.keys())
-
+    keys_sorted = sorted(episodes.keys(), key=lambda x: int(x) if x.isdigit() else x)
     buttons = []
     for i in range(0, len(keys_sorted), per_row):
         row = [
@@ -69,15 +66,15 @@ def generate_episode_buttons(episodes: dict, series_name: str, per_row: int = 4)
     buttons.append([InlineKeyboardButton("🔙 رجوع", callback_data="back_to_series")])
     return buttons
 
-# ========== الأوامر ==========
+# ---------- /start ----------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     if not await is_user_subscribed(user.id, context):
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("✅ ابدأ الآن", switch_inline_query="")]
+            [InlineKeyboardButton("✅ إبدأ الآن", switch_inline_query_current_chat="/start")]
         ])
         await update.message.reply_text(
-            "⚠️ لازم تشترك في القناة الأول.\n📢 https://t.me/AlboraninTV\n\nبعد الاشتراك اضغط على زر (ابدأ الآن).",
+            "⚠️ لازم تشترك في القناة الأول وبعدها اضغط على الزر لإرسال أمر /start.\n📢 https://t.me/AlboraninTV",
             reply_markup=keyboard
         )
         return
@@ -97,6 +94,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=InlineKeyboardMarkup(buttons)
     )
 
+# ---------- التعامل مع الضغطات ----------
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -143,17 +141,17 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 [InlineKeyboardButton("🏠 رجوع للقائمة", callback_data="back_to_series")]
             ])
         )
-
+# ---------- /add ----------
 async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     if not await is_user_subscribed(user.id, context):
         await update.message.reply_text("⚠️ لازم تشترك في القناة.")
         return
     if not is_admin(user.id):
-        await update.message.reply_text("❌ مش مسموحلك.")
+        await update.message.reply_text("❌ مش مسموحلك تستخدم الأمر ده.")
         return
     if len(context.args) < 2:
-        await update.message.reply_text("❗ استخدم كده:\n`/add اسم_المسلسل رقم_الحلقة`", parse_mode="Markdown")
+        await update.message.reply_text("❗ استخدم الأمر كده:\n`/add اسم_المسلسل رقم_الحلقة`", parse_mode="Markdown")
         return
 
     series_name = context.args[0]
@@ -162,10 +160,12 @@ async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     log_usage(user, "add_episode", f"{series_name} - {episode_number}")
     await update.message.reply_text(f"✅ تمام، ابعتلي الحلقة (فورورد من الجروب) كحلقة {episode_number} لمسلسل {series_name}")
 
+# ---------- التقاط الرسالة الموجهة ----------
 async def handle_forward(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     if user.id not in PENDING_ADDS:
         return
+
     if not update.message.forward_from_chat:
         await update.message.reply_text("⚠️ لازم تبعتلي الرسالة كـ *Forward* من الجروب.", parse_mode="Markdown")
         return
@@ -185,6 +185,7 @@ async def handle_forward(update: Update, context: ContextTypes.DEFAULT_TYPE):
     log_usage(user, "saved_episode", f"{series_name} - {episode_number}")
     await update.message.reply_text(f"✅ تم حفظ الحلقة {episode_number} لمسلسل {series_name}")
 
+# ---------- /list ----------
 async def list_series(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     if not await is_user_subscribed(user.id, context):
@@ -193,21 +194,22 @@ async def list_series(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     series_data = load_series_data()
     if not series_data:
-        await update.message.reply_text("❌ مفيش بيانات.")
+        await update.message.reply_text("❌ مفيش بيانات حالياً.")
         return
 
     log_usage(user, "list_series")
 
-    text = "📚 قائمة المسلسلات:\n\n"
+    text = "📚 قائمة المسلسلات والحلقات:\n\n"
     for series, episodes in series_data.items():
-        ep_list = ", ".join(sorted(episodes.keys(), key=lambda x: int(x)))
-        text += f"• {series} ({len(episodes)}): {ep_list}\n"
+        ep_list = ", ".join(f"حلقة {ep}" for ep in sorted(episodes.keys(), key=lambda x: int(x) if x.isdigit() else x))
+        text += f"• {series} ({len(episodes)} حلقات): {ep_list}\n"
     await update.message.reply_text(text)
 
+# ---------- /delete ----------
 async def delete_episode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     if not is_admin(user.id):
-        await update.message.reply_text("❌ مش مسموحلك.")
+        await update.message.reply_text("❌ مش مسموحلك بالأمر ده.")
         return
     if len(context.args) < 2:
         await update.message.reply_text("❗ استخدم كده:\n`/delete اسم_المسلسل رقم_الحلقة`", parse_mode="Markdown")
@@ -227,33 +229,74 @@ async def delete_episode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("❌ الحلقة أو المسلسل غير موجود.")
 
+# ---------- /admin ----------
+async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    if not is_admin(user.id):
+        await update.message.reply_text("❌ مش مسموحلك.")
+        return
+
+    data = load_series_data()
+    total_series = len(data)
+    total_episodes = sum(len(episodes) for episodes in data.values())
+
+    logs = []
+    if os.path.exists(USAGE_LOG_FILE):
+        with open(USAGE_LOG_FILE, "r", encoding="utf-8") as f:
+            logs = json.load(f)
+
+    users = {entry["user_id"] for entry in logs}
+    text = f"""📊 لوحة تحكم البوت:
+
+• عدد المسلسلات: {total_series}
+• عدد الحلقات: {total_episodes}
+• عدد المستخدمين: {len(users)}
+• عدد الأوامر المسجلة: {len(logs)}
+
+🕹️ التحكم:
+- /list : عرض الحلقات
+- /add : إضافة
+- /delete : حذف
+- /logs : عرض سجل الاستخدام
+"""
+    await update.message.reply_text(text)
+
+# ---------- /logs ----------
 async def show_logs(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     if not is_admin(user.id):
-        await update.message.reply_text("❌ غير مصرح.")
+        await update.message.reply_text("❌ غير مصرح لك.")
         return
 
     if not os.path.exists(USAGE_LOG_FILE):
-        await update.message.reply_text("لا يوجد سجل استخدام بعد.")
+        await update.message.reply_text("⚠️ لا يوجد سجل استخدام.")
         return
 
     with open(USAGE_LOG_FILE, "r", encoding="utf-8") as f:
         logs = json.load(f)
 
-    text = "📝 سجل استخدام البوت:\n\n"
+    text = "📝 سجل الاستخدام:\n\n"
     for entry in logs:
-        text += f"- [{entry['timestamp']}] {entry['name']} استخدم {entry['action']} {entry['extra']}\n"
-    await update.message.reply_text(text[:4000])  # Telegram limit
+        line = f"{entry['timestamp']} - {entry['name']} (@{entry['username']}): {entry['action']} {entry['extra']}\n"
+        text += line
 
-# ========== تشغيل البوت ==========
+    if len(text) > 4000:
+        text = text[-4000:]
+
+    await update.message.reply_text(text)
+
+# ---------- تشغيل البوت ----------
 app = ApplicationBuilder().token(TOKEN).build()
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("add", add))
 app.add_handler(CommandHandler("list", list_series))
 app.add_handler(CommandHandler("delete", delete_episode))
+app.add_handler(CommandHandler("admin", admin_panel))
 app.add_handler(CommandHandler("logs", show_logs))
 app.add_handler(CallbackQueryHandler(button_handler))
-app.add_handler(MessageHandler(filters.FORWARDED, handle_forward))
+app.add_handler(MessageHandler(filters.FORWARDED & filters.TEXT, handle_forward))
+app.add_handler(MessageHandler(filters.FORWARDED & filters.VIDEO, handle_forward))
+app.add_handler(MessageHandler(filters.FORWARDED & filters.PHOTO, handle_forward))
 
 print("✅ البوت شغّال...")
 app.run_polling()
