@@ -55,7 +55,7 @@ async def is_user_subscribed(user_id: int, context: ContextTypes.DEFAULT_TYPE) -
         return False
 
 def generate_episode_buttons(episodes: dict, series_name: str, per_row: int = 4):
-    keys_sorted = sorted(episodes.keys(), key=lambda x: int(x) if x.isdigit() else x)
+    keys_sorted = sorted(episodes.keys(), key=lambda x: int(x))
     buttons = []
     for i in range(0, len(keys_sorted), per_row):
         row = [
@@ -204,7 +204,7 @@ async def list_series(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     text = "📚 قائمة المسلسلات والحلقات:\n\n"
     for series, episodes in series_data.items():
-        ep_list = ", ".join(f"حلقة {ep}" for ep in sorted(episodes.keys(), key=lambda x: int(x) if x.isdigit() else x))
+        ep_list = ", ".join(f"حلقة {ep}" for ep in sorted(episodes.keys(), key=lambda x: int(x)))
         text += f"• {series} ({len(episodes)} حلقات): {ep_list}\n"
     await update.message.reply_text(text)
 
