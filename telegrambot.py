@@ -60,16 +60,29 @@ def generate_episode_buttons(episodes: dict, series_name: str, page: int = 0, pe
     keys_sorted = sorted([k.strip() for k in episodes.keys() if k.strip().isdigit()], key=lambda x: int(x))
     total = len(keys_sorted)
 
-    if total <= EPISODES_PER_PAGE:
-        buttons = []
-        for i in range(0, total, per_row):
-            row = [
-                InlineKeyboardButton(f"حلقة {ep}", callback_data=f"episode|{series_name}|{ep}")
-                for ep in keys_sorted[i:i+per_row]
-            ]
-            buttons.append(row)
-        buttons.append([InlineKeyboardButton("🔙 رجوع", callback_data="back_to_series")])
-        return buttons
+    EPISODES_PER_PAGE = 20
+    start = page * EPISODES_PER_PAGE
+    end = start + EPISODES_PER_PAGE
+    paginated = keys_sorted[start:end]
+
+    buttons = []
+    for i in range(0, len(paginated), per_row):
+        row = [
+            InlineKeyboardButton(f"حلقة {int(ep)}", callback_data=f"episode|{series_name}|{ep}")
+            for ep in paginated[i:i+per_row]
+        ]
+        buttons.append(row)
+
+    nav_buttons = []
+    if page > 0:
+        nav_buttons.append(InlineKeyboardButton("⬅️ السابق", callback_data=f"series|{series_name}|{page-1}"))
+    if end < total:
+        nav_buttons.append(InlineKeyboardButton("التالي ➡️", callback_data=f"series|{series_name}|{page+1}"))
+    if nav_buttons:
+        buttons.append(nav_buttons)
+
+    buttons.append([InlineKeyboardButton("🔙 رجوع", callback_data="back_to_series")])
+    return buttons
 
     start = page * EPISODES_PER_PAGE
     end = start + EPISODES_PER_PAGE
