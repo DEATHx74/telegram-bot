@@ -12,6 +12,8 @@ DATA_FILE = "series_data.json"
 USAGE_LOG_FILE = "usage_log.json"
 PENDING_ADDS = {}
 
+EPISODES_PER_PAGE = 100  # شرط ظهور الصفحات
+
 # ========== الأدوات ==========
 def load_series_data():
     if not os.path.exists(DATA_FILE):
@@ -54,18 +56,29 @@ async def is_user_subscribed(user_id: int, context: ContextTypes.DEFAULT_TYPE) -
     except:
         return False
 
-def generate_episode_buttons(episodes: dict, series_name: str, per_row: int = 4):
+def generate_episode_buttons(episodes: dict, series_name: str, page: int = 0, per_row: int = 4):
     keys_sorted = sorted(episodes.keys(), key=lambda x: int(x))
+    start = page * EPISODES_PER_PAGE
+    end = start + EPISODES_PER_PAGE
+    paginated = keys_sorted[start:end]
+
     buttons = []
-    for i in range(0, len(keys_sorted), per_row):
+    for i in range(0, len(paginated), per_row):
         row = [
             InlineKeyboardButton(f"حلقة {ep}", callback_data=f"episode|{series_name}|{ep}")
-            for ep in keys_sorted[i:i+per_row]
+            for ep in paginated[i:i+per_row]
         ]
         buttons.append(row)
-    # زر واحد فقط للرجوع
-    if keys_sorted:
-        buttons.append([InlineKeyboardButton("🔙 رجوع", callback_data="back_to_series")])
+
+    nav_buttons = []
+    if page > 0:
+        nav_buttons.append(InlineKeyboardButton("⬅️ السابق", callback_data=f"series|{series_name}|{page-1}"))
+    if end < len(keys_sorted):
+        nav_buttons.append(InlineKeyboardButton("التالي ➡️", callback_data=f"series|{series_name}|{page+1}"))
+    if nav_buttons:
+        buttons.append(nav_buttons)
+
+    buttons.append([InlineKeyboardButton("🔙 رجوع", callback_data="back_to_series")])
     return buttons
 
 # ========== /start ==========
@@ -76,7 +89,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("📢 اضغط هنا للاشتراك في القناة", url="https://t.me/AlboraninTV")]
         ])
         await update.message.reply_text(
-            "⚠️ لازم تشترك في القناة عشان تقدر تستخدم البوت، وبعدها ارجع هنا واضغط على ⬅️ /start مرة تانية.",
+            "⚠️ لازم تشترك في القناة وبعدها ارجع هنا واضغط على ⬅️ /start.",
             reply_markup=keyboard
         )
         return
@@ -116,9 +129,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if data.startswith("series|"):
-        series_name = data.split("|")[1]
+        parts = data.split("|")
+        series_name = parts[1]
+        page = int(parts[2]) if len(parts) > 2 else 0
         episodes = series_data.get(series_name, {})
-        buttons = generate_episode_buttons(episodes, series_name)
+        buttons = generate_episode_buttons(episodes, series_name, page)
         await query.message.edit_text(
             f"🎬 اختر الحلقة من {series_name}:",
             reply_markup=InlineKeyboardMarkup(buttons)
@@ -148,7 +163,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     if not await is_user_subscribed(user.id, context):
-        await update.message.reply_text("⚠️ لازم تشترك في القناة عشان تقدر تستخدم البوت، وبعدها ارجع هنا واضغط على ⬅️ /start مرة تانية.")
+        await update.message.reply_text("⚠️ لازم تشترك في القناة عشان تقدر تستخدم البوت، وبعدها ارجع هنا واضغط على ⬅️ /start.")
         return
     if not is_admin(user.id):
         await update.message.reply_text("❌ مش مسموحلك تستخدم الأمر ده.")
@@ -192,7 +207,7 @@ async def handle_forward(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def list_series(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     if not await is_user_subscribed(user.id, context):
-        await update.message.reply_text("⚠️ لازم تشترك في القناة عشان تقدر تستخدم البوت، وبعدها ارجع هنا واضغط على ⬅️ /start مرة تانية.")
+        await update.message.reply_text("⚠️ لازم تشترك في القناة.")
         return
 
     series_data = load_series_data()
@@ -305,4 +320,3 @@ app.add_handler(MessageHandler(filters.FORWARDED & filters.PHOTO, handle_forward
 
 print("✅ البوت شغّال...")
 app.run_polling()
-
