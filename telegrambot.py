@@ -4,7 +4,7 @@ import json
 import os
 from datetime import datetime
 
-TOKEN = "7820235468:AAFLoJXoVYGrcpw7B_dx4BlTXKFfEkpexjc"
+TOKEN = "8062177596:AAFtlgBqRG74C2RCfLYLd4qQ6S8LmZDKG3U"
 ADMIN_IDS = [829510841]
 channel_id = -1002698646841
 
