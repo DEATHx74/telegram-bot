@@ -46,6 +46,18 @@ def log_usage(user, action, extra=""):
     with open(USAGE_LOG_FILE, "w", encoding="utf-8") as f:
         json.dump(logs, f, ensure_ascii=False, indent=2)
 
+def get_user_count():
+    """ترجع عدد المستخدمين الفريدين من سجل الاستخدام."""
+    if not os.path.exists(USAGE_LOG_FILE):
+        return 0
+    try:
+        with open(USAGE_LOG_FILE, "r", encoding="utf-8") as f:
+            logs = json.load(f)
+        user_ids = {entry["user_id"] for entry in logs}
+        return len(user_ids)
+    except:
+        return 0
+
 def is_admin(user_id):
     return user_id in ADMIN_IDS
 
@@ -55,6 +67,7 @@ async def is_user_subscribed(user_id: int, context: ContextTypes.DEFAULT_TYPE) -
         return member.status in ["member", "administrator", "creator"]
     except:
         return False
+
 
 EPISODES_PER_PAGE = 20  # عدد الحلقات في كل صفحة
 
@@ -166,7 +179,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             message_id=episode["message_id"]
         )
         await query.message.reply_text(
-            "🎬 تم عرض الحلقة. استخدم الزر بالأسفل للرجوع.",
+            "🎬 تم عرض الحلقة.",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("🏠 رجوع للقائمة", callback_data="back_to_series")]
             ])
@@ -271,17 +284,18 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     total_series = len(data)
     total_episodes = sum(len(episodes) for episodes in data.values())
 
+    user_count = get_user_count()  # ✅ تم الإضافة هنا
+
     logs = []
     if os.path.exists(USAGE_LOG_FILE):
         with open(USAGE_LOG_FILE, "r", encoding="utf-8") as f:
             logs = json.load(f)
 
-    users = {entry["user_id"] for entry in logs}
     text = f"""📊 لوحة تحكم البوت:
 
 • عدد المسلسلات: {total_series}
 • عدد الحلقات: {total_episodes}
-• عدد المستخدمين: {len(users)}
+• عدد المستخدمين: {user_count}
 • عدد الأوامر المسجلة: {len(logs)}
 
 🕹️ التحكم:
