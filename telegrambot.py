@@ -1,4 +1,4 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import BotCommand, Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
 import json
 import os
@@ -60,7 +60,6 @@ def generate_episode_buttons(episodes: dict, series_name: str, page: int = 0, pe
     keys_sorted = sorted([k.strip() for k in episodes.keys() if k.strip().isdigit()], key=lambda x: int(x))
     total = len(keys_sorted)
 
-    EPISODES_PER_PAGE = 20
     start = page * EPISODES_PER_PAGE
     end = start + EPISODES_PER_PAGE
     paginated = keys_sorted[start:end]
@@ -84,41 +83,17 @@ def generate_episode_buttons(episodes: dict, series_name: str, page: int = 0, pe
     buttons.append([InlineKeyboardButton("🔙 رجوع", callback_data="back_to_series")])
     return buttons
 
-    start = page * EPISODES_PER_PAGE
-    end = start + EPISODES_PER_PAGE
-    paginated = keys_sorted[start:end]
-
-    buttons = []
-    for i in range(0, len(paginated), per_row):
-        row = [
-            InlineKeyboardButton(f"حلقة {ep}", callback_data=f"episode|{series_name}|{ep}")
-            for ep in paginated[i:i+per_row]
-        ]
-        buttons.append(row)
-
-    nav_buttons = []
-    if page > 0:
-        nav_buttons.append(InlineKeyboardButton("⬅️ السابق", callback_data=f"series|{series_name}|{page-1}"))
-    if end < total:
-        nav_buttons.append(InlineKeyboardButton("التالي ➡️", callback_data=f"series|{series_name}|{page+1}"))
-    if nav_buttons:
-        buttons.append(nav_buttons)
-
-    buttons.append([InlineKeyboardButton("🔙 رجوع", callback_data="back_to_series")])
-    return buttons
-
 
 # ========== /start ==========
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     if not await is_user_subscribed(user.id, context):
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("📢 اضغط هنا للاشتراك في القناة", url="https://t.me/AlboraninTV")]
-        keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("📢 اضغط هنا للاشتراك في الجروب", url="https://t.me/+sRMVn6ImJoRhMTU0")]
+            [InlineKeyboardButton("📢إشترك في القناة من هنا ", url="https://t.me/AlboraninTV")],
+            [InlineKeyboardButton("👥 إشترك في الجروب من هنا", url="https://t.me/+sRMVn6ImJoRhMTU0")]
         ])
         await update.message.reply_text(
-            "⚠️ لازم تشترك في القناة والجروب وبعدها ارجع هنا واضغط على ⬅️ /start.",
+            "⚠️ لازم تشترك في القناة عشان تقدر تستخدم البوت.\nبعد ما تشترك، اضغط على ⬅️ /start.",
             reply_markup=keyboard
         )
         return
@@ -182,7 +157,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             message_id=episode["message_id"]
         )
         await query.message.reply_text(
-            "⬅️ رجوع للقائمة:",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("🏠 رجوع للقائمة", callback_data="back_to_series")]
             ])
@@ -333,7 +307,18 @@ async def show_logs(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(text)
 
 # ========== تشغيل البوت ==========
-app = ApplicationBuilder().token(TOKEN).build()
+
+async def set_commands(app):
+    await app.bot.set_my_commands([
+        BotCommand("start", "بدء البوت"),
+        BotCommand("add", "إضافة حلقة"),
+        BotCommand("list", "قائمة المسلسلات"),
+        BotCommand("admin", "لوحة التحكم"),
+        BotCommand("logs", "سجل الاستخدام"),
+        BotCommand("delete", "حذف حلقة"),
+    ])
+
+app = ApplicationBuilder().token(TOKEN).post_init(set_commands).build()
 
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("add", add))
