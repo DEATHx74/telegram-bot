@@ -157,6 +157,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             message_id=episode["message_id"]
         )
         await query.message.reply_text(
+            "🎬 تم عرض الحلقة. استخدم الزر بالأسفل للرجوع.",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("🏠 رجوع للقائمة", callback_data="back_to_series")]
             ])
