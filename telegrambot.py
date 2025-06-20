@@ -56,10 +56,16 @@ async def is_user_subscribed(user_id: int, context: ContextTypes.DEFAULT_TYPE) -
     except:
         return False
 
-def generate_episode_buttons(episodes: dict, series_name: str, page: int = 0, per_row: int = 4):
-    keys_sorted = sorted([k.strip() for k in episodes.keys() if k.strip().isdigit()], key=lambda x: int(x))
-    total = len(keys_sorted)
+EPISODES_PER_PAGE = 20  # عدد الحلقات في كل صفحة
 
+def generate_episode_buttons(episodes: dict, series_name: str, page: int = 0, per_row: int = 4):
+    # ترتيب الحلقات تصاعديًا
+    keys_sorted = sorted(
+        [k.strip() for k in episodes.keys() if k.strip().isdigit()],
+        key=lambda x: int(x)
+    )
+
+    total = len(keys_sorted)
     start = page * EPISODES_PER_PAGE
     end = start + EPISODES_PER_PAGE
     paginated = keys_sorted[start:end]
@@ -72,6 +78,7 @@ def generate_episode_buttons(episodes: dict, series_name: str, page: int = 0, pe
         ]
         buttons.append(row)
 
+    # أزرار التنقل بين الصفحات
     nav_buttons = []
     if page > 0:
         nav_buttons.append(InlineKeyboardButton("⬅️ السابق", callback_data=f"series|{series_name}|{page-1}"))
@@ -80,8 +87,11 @@ def generate_episode_buttons(episodes: dict, series_name: str, page: int = 0, pe
     if nav_buttons:
         buttons.append(nav_buttons)
 
+    # زر الرجوع
     buttons.append([InlineKeyboardButton("🔙 رجوع", callback_data="back_to_series")])
+
     return buttons
+
 
 # ========== /start ==========
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
