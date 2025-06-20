@@ -35,6 +35,8 @@ def log_usage(user, action, extra=""):
         "extra": extra
     }
 
+    print("✅ log_usage entry:", entry)  # ✅ للطباعة
+
     logs = []
     if os.path.exists(USAGE_LOG_FILE):
         with open(USAGE_LOG_FILE, "r", encoding="utf-8") as f:
@@ -42,7 +44,9 @@ def log_usage(user, action, extra=""):
                 logs = json.load(f)
             except json.JSONDecodeError:
                 logs = []
+
     logs.append(entry)
+
     with open(USAGE_LOG_FILE, "w", encoding="utf-8") as f:
         json.dump(logs, f, ensure_ascii=False, indent=2)
 
