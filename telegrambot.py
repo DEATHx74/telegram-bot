@@ -83,7 +83,6 @@ def generate_episode_buttons(episodes: dict, series_name: str, page: int = 0, pe
     buttons.append([InlineKeyboardButton("🔙 رجوع", callback_data="back_to_series")])
     return buttons
 
-
 # ========== /start ==========
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
