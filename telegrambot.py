@@ -4,7 +4,7 @@ import json
 import os
 from datetime import datetime
 
-TOKEN = "8062177596:AAFtlgBqRG74C2RCfLYLd4qQ6S8LmZDKG3U"
+TOKEN = "7912558360:AAFkL8lE2GKFM6Nhu6Ze2XhrP2q5lpJLtMI"
 ADMIN_IDS = [829510841]
 channel_id = -1002698646841
 
@@ -114,9 +114,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_user_subscribed(user.id, context):
         keyboard = InlineKeyboardMarkup([
             [InlineKeyboardButton("📢 اضغط هنا للاشتراك في القناة", url="https://t.me/AlboraninTV")]
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("📢 اضغط هنا للاشتراك في الجروب", url="https://t.me/+sRMVn6ImJoRhMTU0")]
         ])
         await update.message.reply_text(
-            "⚠️ لازم تشترك في القناة وبعدها ارجع هنا واضغط على ⬅️ /start.",
+            "⚠️ لازم تشترك في القناة والجروب وبعدها ارجع هنا واضغط على ⬅️ /start.",
             reply_markup=keyboard
         )
         return
@@ -132,7 +134,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         for series_name in series_data
     ]
     await update.message.reply_text(
-        "📺 اختر المسلسل اللي عايز تشوفه:",
+        "📺 اختار المسلسل اللي عايز تشوفه:",
         reply_markup=InlineKeyboardMarkup(buttons)
     )
 
@@ -150,7 +152,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             for series_name in series_data
         ]
         await query.message.edit_text(
-            "📺 اختر المسلسل اللي عايز تشوفه:",
+            "📺 اختار المسلسل اللي عايز تشوفه:",
             reply_markup=InlineKeyboardMarkup(buttons)
         )
         return
@@ -162,7 +164,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         episodes = series_data.get(series_name, {})
         buttons = generate_episode_buttons(episodes, series_name, page)
         await query.message.edit_text(
-            f"🎬 اختر الحلقة من {series_name}:",
+            f"🎬 اختار الحلقة من {series_name}:",
             reply_markup=InlineKeyboardMarkup(buttons)
         )
 
