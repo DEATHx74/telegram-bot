@@ -6,7 +6,7 @@ from datetime import datetime
 TOKEN = "7912558360:AAFkL8lE2GKFM6Nhu6Ze2XhrP2q5lpJLtMI"
 ADMIN_IDS = [829510841]
 channel_id = -1002698646841
-DATA_FILE = "series_data_nested.json"
+DATA_FILE = "series_data.json"
 USAGE_LOG_FILE = "usage_log.json"
 PENDING_ADDS = {}
 EPISODES_PER_PAGE = 20
