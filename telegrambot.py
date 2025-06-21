@@ -91,14 +91,27 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ])
         await update.message.reply_text("⚠️ لازم تشترك في القناة عشان تقدر تستخدم البوت.", reply_markup=keyboard)
         return
+
     log_usage(user, "start")
     series_data = load_series_data()
-    if not series_data:
+
+    # التحقق من وجود مسلسل يحتوي على موسم يحتوي على حلقات
+    valid_series = [
+        series_name for series_name, seasons in series_data.items()
+        if any(season and isinstance(season, dict) and len(season) > 0 for season in seasons.values())
+    ]
+
+    if not valid_series:
         await update.message.reply_text("📂 مفيش مسلسلات مضافة حتى الآن.")
         return
+
     buttons = [[InlineKeyboardButton(series_name, callback_data=f"series|{series_name}")]
-               for series_name in series_data]
-    await update.message.reply_text("📺 اختار المسلسل اللي عايز تشوفه:", reply_markup=InlineKeyboardMarkup(buttons))
+               for series_name in valid_series]
+
+    await update.message.reply_text(
+        "📺 اختار المسلسل اللي عايز تشوفه:",
+        reply_markup=InlineKeyboardMarkup(buttons)
+    )
 
 # ========== الضغطات ==========
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
