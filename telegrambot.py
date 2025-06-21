@@ -96,6 +96,27 @@ def generate_episode_buttons(episodes: dict, series_name: str, season_name: str,
         buttons.append(nav_buttons)
     buttons.append([InlineKeyboardButton("🔙 رجوع", callback_data=f"back_to_seasons|{sanitize_callback(series_name)}")])
     return buttons
+# ========== /start ==========
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    if not await is_user_subscribed(user.id, context):
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("📢 إشترك في القناة من هنا", url="https://t.me/AlboraninTV")],
+            [InlineKeyboardButton("👥 إشترك في الجروب", url="https://t.me/+sRMVn6ImJoRhMTU0")]
+        ])
+        await update.message.reply_text("⚠️ لازم تشترك في القناة عشان تقدر تستخدم البوت.", reply_markup=keyboard)
+        return
+
+    log_usage(user, "start")
+    series_data = load_series_data()
+    if not series_data:
+        await update.message.reply_text("📂 مفيش مسلسلات مضافة حتى الآن.")
+        return
+
+    buttons = [[InlineKeyboardButton(series_name, callback_data=f"series|{sanitize_callback(series_name)}")]
+               for series_name in series_data]
+    await update.message.reply_text("📺 اختار المسلسل اللي عايز تشوفه:", reply_markup=InlineKeyboardMarkup(buttons))
 
 # ========== الضغطات ==========
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
