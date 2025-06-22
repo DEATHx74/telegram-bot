@@ -12,6 +12,9 @@ USAGE_LOG_FILE = "usage_log.json"
 PENDING_ADDS = {}
 EPISODES_PER_PAGE = 20
 
+# ========== إعدادات ==========
+SERIES_PER_ROW = 3  # عدد المسلسلات في كل صف
+
 # ========== أدوات التحميل والحفظ ==========
 def load_series_data():
     if not os.path.exists(DATA_FILE):
@@ -288,13 +291,15 @@ async def list_series(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     log_usage(user, "list_series")
 
-    text = "📚 قائمة المسلسلات والمواسم:\n\n"
-    for series, seasons in series_data.items():
-        text += f"• {series}:\n"
-        for season, episodes in seasons.items():
-            ep_list = ", ".join(f"{ep.strip()}" for ep in sorted(episodes.keys(), key=lambda x: int(x.strip())))
-            text += f"   - {season} ({len(episodes)} حلقة): {ep_list}\n"
-        text += "\n"
+    text = "📚 قائمة المسلسلات:\n\n"
+    row = []
+    for i, series in enumerate(series_data.keys(), 1):
+        row.append(series)
+        if len(row) == SERIES_PER_ROW:
+            text += " | ".join(row) + "\n"
+            row = []
+    if row:
+        text += " | ".join(row) + "\n"
 
     await (update.message or update.callback_query.message).reply_text(text)
 
