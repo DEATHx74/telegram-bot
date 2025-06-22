@@ -370,6 +370,30 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(text, reply_markup=InlineKeyboardMarkup(buttons))
 
+# ========== /logs ==========
+async def show_logs(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    if not is_admin(user.id):
+        await update.message.reply_text("❌ غير مصرح لك.")
+        return
+
+    if not os.path.exists(USAGE_LOG_FILE):
+        await update.message.reply_text("⚠️ لا يوجد سجل استخدام.")
+        return
+
+    with open(USAGE_LOG_FILE, "r", encoding="utf-8") as f:
+        logs = json.load(f)
+
+    text = "📝 سجل الاستخدام:\n\n"
+    for entry in logs[-50:]:  # آخر 50 استخدام فقط
+        line = f"{entry['timestamp']} - {entry['name']} (@{entry['username']}): {entry['action']} {entry['extra']}\n"
+        text += line
+
+    if len(text) > 4000:
+        text = text[-4000:]
+
+    await update.message.reply_text(text)
+
 # ========== تشغيل البوت ==========
 
 async def set_commands(app):
