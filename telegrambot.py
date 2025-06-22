@@ -292,14 +292,12 @@ async def list_series(update: Update, context: ContextTypes.DEFAULT_TYPE):
     log_usage(user, "list_series")
 
     text = "📚 قائمة المسلسلات:\n\n"
-    row = []
-    for i, series in enumerate(series_data.keys(), 1):
-        row.append(series)
-        if len(row) == SERIES_PER_ROW:
-            text += " | ".join(row) + "\n"
-            row = []
-    if row:
-        text += " | ".join(row) + "\n"
+    series_names = list(series_data.keys())
+    
+    for i in range(0, len(series_names), SERIES_PER_ROW):
+        row = series_names[i:i + SERIES_PER_ROW]
+        line = "   |   ".join(f"{name}" for name in row)
+        text += f"{line}\n"
 
     await (update.message or update.callback_query.message).reply_text(text)
 
