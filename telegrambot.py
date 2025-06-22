@@ -291,15 +291,20 @@ async def list_series(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     log_usage(user, "list_series")
 
-    text = "📚 قائمة المسلسلات:\n\n"
     series_names = list(series_data.keys())
-    
-    for i in range(0, len(series_names), SERIES_PER_ROW):
-        row = series_names[i:i + SERIES_PER_ROW]
-        line = "   |   ".join(f"{name}" for name in row)
-        text += f"{line}\n"
+    buttons = []
 
-    await (update.message or update.callback_query.message).reply_text(text)
+    for i in range(0, len(series_names), SERIES_PER_ROW):
+        row = [
+            InlineKeyboardButton(name, callback_data=f"series|{sanitize_callback(name)}")
+            for name in series_names[i:i + SERIES_PER_ROW]
+        ]
+        buttons.append(row)
+
+    await (update.message or update.callback_query.message).reply_text(
+        "📚 قائمة المسلسلات:",
+        reply_markup=InlineKeyboardMarkup(buttons)
+    )
 
 # ========== /delete ==========
 async def delete_episode(update: Update, context: ContextTypes.DEFAULT_TYPE):
