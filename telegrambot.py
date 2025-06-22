@@ -158,10 +158,19 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return None
 
     if data == "back_to_series":
-        buttons = [[InlineKeyboardButton(series_name, callback_data=f"series|{sanitize_callback(series_name)}")]
-                   for series_name in series_data]
+        series_names = list(series_data.keys())
+        buttons = []
+
+        for i in range(0, len(series_names), SERIES_PER_ROW):
+            row = [
+                InlineKeyboardButton(series_name, callback_data=f"series|{sanitize_callback(series_name)}")
+                for series_name in series_names[i:i + SERIES_PER_ROW]
+            ]
+            buttons.append(row)
+
         await query.message.edit_text("📺 اختار المسلسل اللي عايز تشوفه:", reply_markup=InlineKeyboardMarkup(buttons))
         return
+
 
     if data.startswith("back_to_seasons|"):
         _, short_series = data.split("|")
@@ -296,8 +305,8 @@ async def list_series(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     for i in range(0, len(series_names), SERIES_PER_ROW):
         row = [
-            InlineKeyboardButton(name, callback_data=f"series|{sanitize_callback(name)}")
-            for name in series_names[i:i + SERIES_PER_ROW]
+            InlineKeyboardButton(series_name, callback_data=f"series|{sanitize_callback(series_name)}")
+            for series_name in series_names[i:i + SERIES_PER_ROW]
         ]
         buttons.append(row)
 
