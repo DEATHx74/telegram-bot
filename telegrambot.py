@@ -278,21 +278,25 @@ async def handle_forward(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def list_series(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     if not await is_user_subscribed(user.id, context):
-        await update.message.reply_text("⚠️ لازم تشترك في القناة.")
+        await (update.message or update.callback_query.message).reply_text("⚠️ لازم تشترك في القناة.")
         return
 
     series_data = load_series_data()
     if not series_data:
-        await update.message.reply_text("❌ مفيش بيانات حالياً.")
+        await (update.message or update.callback_query.message).reply_text("❌ مفيش بيانات حالياً.")
         return
 
     log_usage(user, "list_series")
 
-    text = "📚 قائمة المسلسلات والحلقات:\n\n"
-    for series, episodes in series_data.items():
-        ep_list = ", ".join(f"حلقة {ep}" for ep in sorted(episodes.keys(), key=lambda x: int(x)))
-        text += f"• {series} ({len(episodes)} حلقات): {ep_list}\n"
-    await update.message.reply_text(text)
+    text = "📚 قائمة المسلسلات والمواسم:\n\n"
+    for series, seasons in series_data.items():
+        text += f"• {series}:\n"
+        for season, episodes in seasons.items():
+            ep_list = ", ".join(f"{ep.strip()}" for ep in sorted(episodes.keys(), key=lambda x: int(x.strip())))
+            text += f"   - {season} ({len(episodes)} حلقة): {ep_list}\n"
+        text += "\n"
+
+    await (update.message or update.callback_query.message).reply_text(text)
 
 # ========== /delete ==========
 async def delete_episode(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -374,11 +378,11 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def show_logs(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     if not is_admin(user.id):
-        await update.message.reply_text("❌ غير مصرح لك.")
+        await (update.message or update.callback_query.message).reply_text("❌ غير مصرح لك.")
         return
 
     if not os.path.exists(USAGE_LOG_FILE):
-        await update.message.reply_text("⚠️ لا يوجد سجل استخدام.")
+        await (update.message or update.callback_query.message).reply_text("⚠️ لا يوجد سجل استخدام.")
         return
 
     with open(USAGE_LOG_FILE, "r", encoding="utf-8") as f:
@@ -392,7 +396,7 @@ async def show_logs(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if len(text) > 4000:
         text = text[-4000:]
 
-    await update.message.reply_text(text)
+    await (update.message or update.callback_query.message).reply_text(text)
 
 # ========== تشغيل البوت ==========
 
