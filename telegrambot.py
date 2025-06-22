@@ -54,6 +54,10 @@ async def is_user_subscribed(user_id: int, context: ContextTypes.DEFAULT_TYPE) -
     except:
         return False
 
+def sanitize_callback(text):
+    return re.sub(r"[^\w\d]", "", text).strip()[:20]
+
+
 # ========== توليد أزرار المواسم والحلقات ==========
 # ✅ تنظيف النص من الرموز لتفادي أخطاء callback_data
 
@@ -125,6 +129,23 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = query.data
     user = query.from_user
     series_data = load_series_data()
+
+    if data == "admin_list":
+        await list_series(update, context)
+        return
+
+    if data == "admin_logs":
+        await show_logs(update, context)
+        return
+
+    if data == "admin_add":
+        await query.message.reply_text("استخدم الأمر `/add اسم_المسلسل رقم_الحلقة` لإضافة حلقة جديدة.", parse_mode="Markdown")
+        return
+
+    if data == "admin_delete":
+        await query.message.reply_text("استخدم الأمر `/delete اسم_المسلسل رقم_الحلقة` لحذف حلقة.", parse_mode="Markdown")
+        return
+
 
     # استرجاع الاسم الحقيقي من البيانات (من أول تطابق موجود)
     def find_series_name(short_name):
@@ -298,6 +319,8 @@ async def delete_episode(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ الحلقة أو المسلسل غير موجود.")
 
 # ========== /admin ==========
+from telegram import InlineKeyboardMarkup, InlineKeyboardButton
+
 async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     if not is_admin(user.id):
@@ -306,53 +329,46 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     data = load_series_data()
     total_series = len(data)
-    total_episodes = sum(len(episodes) for episodes in data.values())
+    total_seasons = sum(len(series) for series in data.values())
+    total_episodes = sum(len(season) for series in data.values() for season in series.values())
 
-    user_count = get_user_count()  # ✅ تم الإضافة هنا
-
+    user_ids = set()
     logs = []
     if os.path.exists(USAGE_LOG_FILE):
         with open(USAGE_LOG_FILE, "r", encoding="utf-8") as f:
-            logs = json.load(f)
+            try:
+                logs = json.load(f)
+                for entry in logs:
+                    user_ids.add(entry.get("user_id"))
+            except:
+                logs = []
 
     text = f"""📊 لوحة تحكم البوت:
 
 • عدد المسلسلات: {total_series}
+• عدد المواسم: {total_seasons}
 • عدد الحلقات: {total_episodes}
-• عدد المستخدمين: {user_count}
+• عدد المستخدمين: {len(user_ids)}
 • عدد الأوامر المسجلة: {len(logs)}
 
-🕹️ التحكم:
-- /list : عرض الحلقات
-- /add : إضافة
-- /delete : حذف
-- /logs : عرض سجل الاستخدام
+اختر إجراء:
 """
-    await update.message.reply_text(text)
 
-# ========== /logs ==========
-async def show_logs(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user
-    if not is_admin(user.id):
-        await update.message.reply_text("❌ غير مصرح لك.")
-        return
+    buttons = [
+        [
+            InlineKeyboardButton("📃 عرض المسلسلات", callback_data="admin_list"),
+            InlineKeyboardButton("📋 سجل الاستخدام", callback_data="admin_logs")
+        ],
+        [
+            InlineKeyboardButton("➕ إضافة حلقة", callback_data="admin_add"),
+            InlineKeyboardButton("🗑 حذف حلقة", callback_data="admin_delete")
+        ],
+        [
+            InlineKeyboardButton("🏠 العودة للبداية", callback_data="back_to_series")
+        ]
+    ]
 
-    if not os.path.exists(USAGE_LOG_FILE):
-        await update.message.reply_text("⚠️ لا يوجد سجل استخدام.")
-        return
-
-    with open(USAGE_LOG_FILE, "r", encoding="utf-8") as f:
-        logs = json.load(f)
-
-    text = "📝 سجل الاستخدام:\n\n"
-    for entry in logs:
-        line = f"{entry['timestamp']} - {entry['name']} (@{entry['username']}): {entry['action']} {entry['extra']}\n"
-        text += line
-
-    if len(text) > 4000:
-        text = text[-4000:]
-
-    await update.message.reply_text(text)
+    await update.message.reply_text(text, reply_markup=InlineKeyboardMarkup(buttons))
 
 # ========== تشغيل البوت ==========
 
@@ -369,13 +385,14 @@ async def set_commands(app):
 app = ApplicationBuilder().token(TOKEN).post_init(set_commands).build()
 
 app.add_handler(CommandHandler("start", start))
-app.add_handler(CommandHandler("add", add))
-app.add_handler(CommandHandler("list", list_series))
-app.add_handler(CommandHandler("delete", delete_episode))
 app.add_handler(CommandHandler("admin", admin_panel))
+app.add_handler(CommandHandler("list", list_series))
+app.add_handler(CommandHandler("add", add))
+app.add_handler(CommandHandler("delete", delete_episode))
 app.add_handler(CommandHandler("logs", show_logs))
 
 app.add_handler(CallbackQueryHandler(button_handler))
+
 app.add_handler(MessageHandler(filters.FORWARDED & filters.TEXT, handle_forward))
 app.add_handler(MessageHandler(filters.FORWARDED & filters.VIDEO, handle_forward))
 app.add_handler(MessageHandler(filters.FORWARDED & filters.PHOTO, handle_forward))
