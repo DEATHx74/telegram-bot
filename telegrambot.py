@@ -4,7 +4,7 @@ import json, os
 import re
 from datetime import datetime
 
-TOKEN = "8067774654:AAGABMOK_BoOd7tjVYoG1nkOgonom7YYFTg"
+TOKEN = "7978541781:AAFwDv2qbC0-ormGn7_2zXbjppzng_c5v28"
 ADMIN_IDS = [829510841]
 channel_id = -1002875121141
 DATA_FILE = "series_data.json"
@@ -110,7 +110,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_user_subscribed(user.id, context):
         keyboard = InlineKeyboardMarkup([
             [InlineKeyboardButton("📢 إشترك في القناة من هنا", url="https://t.me/ALBORANIN_TV")],
-            [InlineKeyboardButton("👥 إشترك في الجروب", url="https://t.me/+sRMVn6ImJoRhMTU0")]
+            [InlineKeyboardButton("👥 إشترك في الجروب", url="https://t.me/+2tXvV4bw9IkwYzk0")]
         ])
         await update.message.reply_text("⚠️ لازم تشترك في القناة عشان تقدر تستخدم البوت.", reply_markup=keyboard)
         return
