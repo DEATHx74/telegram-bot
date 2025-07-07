@@ -6,7 +6,7 @@ from datetime import datetime
 
 TOKEN = "7827877158:AAEGgVM4Q5TFTGQfXcWg-AgL1LhFzwUIHNE"
 ADMIN_IDS = [829510841]
-channel_id = -1002875121141
+channel_id = -1002762974187
 DATA_FILE = "series_data.json"
 USAGE_LOG_FILE = "usage_log.json"
 PENDING_ADDS = {}
