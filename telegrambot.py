@@ -4,7 +4,7 @@ import json, os
 import re
 from datetime import datetime
 
-TOKEN = "7827877158:AAEGgVM4Q5TFTGQfXcWg-AgL1LhFzwUIHNE"
+TOKEN = "8030974297:AAGOTyR7qnRdFyAQkCI_JlRacDPOAfmw-NQ"
 ADMIN_IDS = [829510841]
 channel_id = -1002762974187
 DATA_FILE = "series_data.json"
