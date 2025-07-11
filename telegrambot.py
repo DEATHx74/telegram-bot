@@ -109,7 +109,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     if not await is_user_subscribed(user.id, context):
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("📢 إشترك في القناة من هنا", url="https://t.me/AlboraninIV")],
+            [InlineKeyboardButton("📢 إشترك في القناة من هنا", url="https://t.me/+sBk0x_NJQAMxZmU0")],
             [InlineKeyboardButton("📢 إشترك في القناة  الاحتياطية من هنا", url="https://t.me/+uJD5wALyRFRiNzQ0")],
             [InlineKeyboardButton("👥 إشترك في الجروب", url="https://t.me/+y-pfTeSgOCA3M2E0")]
         ])
