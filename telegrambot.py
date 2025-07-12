@@ -111,7 +111,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = InlineKeyboardMarkup([
             [InlineKeyboardButton("📢 إشترك في القناة من هنا", url="https://t.me/+sBk0x_NJQAMxZmU0")],
             [InlineKeyboardButton("📢 إشترك في القناة  الاحتياطية من هنا", url="https://t.me/+uJD5wALyRFRiNzQ0")],
-            [InlineKeyboardButton("👥 إشترك في الجروب", url="https://t.me/+y-pfTeSgOCA3M2E0")]
+            [InlineKeyboardButton("👥 إشترك في الجروب", url="https://t.me/+YXypRPzEIFYyODJk")]
         ])
         await update.message.reply_text("⚠️ لازم تشترك في القناة عشان تقدر تستخدم البوت.", reply_markup=keyboard)
         return
