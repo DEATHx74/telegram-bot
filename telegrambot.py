@@ -4,9 +4,9 @@ import json, os
 import re
 from datetime import datetime
 
-TOKEN = "8030974297:AAGOTyR7qnRdFyAQkCI_JlRacDPOAfmw-NQ"
+TOKEN = "7827624867:AAHMzn2bI4kwjTGUmWp621I95HkeNFByDeU"
 ADMIN_IDS = [829510841]
-channel_id = -1002837276150
+channel_id = -1002894773514
 DATA_FILE = "series_data.json"
 USAGE_LOG_FILE = "usage_log.json"
 PENDING_ADDS = {}
@@ -109,9 +109,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     if not await is_user_subscribed(user.id, context):
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("📢 إشترك في القناة من هنا", url="https://t.me/+1c4oZLyqRCNiN2Zk")],
-            [InlineKeyboardButton("📢 إشترك في القناة  الاحتياطية من هنا", url="https://t.me/+1S9g1NNcH29kYzY0")],
-            [InlineKeyboardButton("👥 إشترك في الجروب", url="https://t.me/+YXypRPzEIFYyODJk")]
+            [InlineKeyboardButton("📢 إشترك في القناة من هنا", url="https://t.me/+TjSNl-DGAYgyYjc0")],
+            [InlineKeyboardButton("📢 إشترك في القناة  الاحتياطية من هنا", url="https://t.me/+kmoZ3ILV8O9hM2Zk")],
+            [InlineKeyboardButton("👥 إشترك في الجروب", url="https://t.me/+Dv65alI3QCgzMzM0")]
         ])
         await update.message.reply_text("⚠️ لازم تشترك في القناة عشان تقدر تستخدم البوت.", reply_markup=keyboard)
         return
