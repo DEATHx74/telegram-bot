@@ -320,7 +320,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if data.startswith("series|"):
         _, series_name = data.split("|", 1)
-        seasons = series_data.get(series_name, {}).get("seasons", {})
+        seasons = series_data.get(series_name, {})
 
         if not seasons:
             await query.message.reply_text("❌ لا يوجد مواسم لهذا المسلسل.")
