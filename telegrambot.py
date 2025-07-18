@@ -229,7 +229,8 @@ async def handle_series_search(update: Update, context: ContextTypes.DEFAULT_TYP
             _, series_name, ep_num, season_name = item
             keyboard.append([InlineKeyboardButton(f"🎞 {series_name} - {season_name} - حلقة {ep_num}", callback_data=f"episode|{series_name}|{ep_num}")])
 
-    keyboard.append([InlineKeyboardButton("🔙 رجوع", callback_data="back")])
+    keyboard.append([InlineKeyboardButton("🔙 رجوع", callback_data="back_to_series")])
+
 
     await update.message.reply_text("🔎 نتائج البحث:", reply_markup=InlineKeyboardMarkup(keyboard))
 
@@ -360,7 +361,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.message.reply_text("❌ بيانات غير صالحة.")
             return
 
-    elif data == "back":
+    elif data == "back_to_series":
         await start(update, context)
 
 
