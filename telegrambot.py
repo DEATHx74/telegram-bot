@@ -193,22 +193,43 @@ async def handle_series_search(update: Update, context: ContextTypes.DEFAULT_TYP
     query = update.message.text.lower()
     series_data = load_series_data()
 
-    results = [
-        series_name for series_name in series_data
-        if query in series_name.lower()
-    ]
+    results = []
+
+    for series_name, series_info in series_data.items():
+        # بحث في اسم المسلسل نفسه
+        if query in series_name.lower():
+            results.append(("series", series_name))
+
+        # بحث داخل المواسم
+        for season_name, episodes in series_info.items():
+            if not isinstance(episodes, dict):
+                continue
+
+            if query in season_name.lower():
+                results.append(("season", series_name, season_name))
+
+            # بحث داخل الحلقات داخل كل موسم
+            for ep_num, ep_info in episodes.items():
+                if query in ep_num or query in f"{series_name.lower()} {season_name.lower()}":
+                    results.append(("episode", series_name, ep_num, season_name))
 
     if not results:
-        await update.message.reply_text("❌ مفيش مسلسل بالاسم ده.")
+        await update.message.reply_text("❌ مفيش نتائج.")
         return
 
-    keyboard = [
-        [InlineKeyboardButton(name, callback_data=f"series|{sanitize_callback(name)}")]
-        for name in results
-    ]
-    keyboard.append([InlineKeyboardButton("🔙 رجوع", callback_data="back")])
+    keyboard = []
+    for item in results:
+        if item[0] == "series":
+            _, name = item
+            keyboard.append([InlineKeyboardButton(f"📺 {name}", callback_data=f"series|{name}")])
+        elif item[0] == "season":
+            _, series_name, season_name = item
+            keyboard.append([InlineKeyboardButton(f"📂 {series_name} - {season_name}", callback_data=f"season|{series_name}|{season_name}")])
+        elif item[0] == "episode":
+            _, series_name, ep_num, season_name = item
+            keyboard.append([InlineKeyboardButton(f"🎞 {series_name} - {season_name} - حلقة {ep_num}", callback_data=f"episode|{series_name}|{ep_num}")])
 
-    await update.message.reply_text(f"🔎 نتائج البحث عن: <b>{query}</b>", parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
+    keyboard.append([InlineKeyboa]()
 
 # ========== /start ==========
 # دالة لحفظ user_id في ملف users.json
@@ -271,44 +292,72 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(stats, parse_mode="HTML", reply_markup=keyboard)
         return
 
+    if data == "admin_broadcast":
+        await query.message.reply_text("✏️ اكتب الآن محتوى الإعلان اللي عايز تبعته لكل المستخدمين:")
+        context.user_data["awaiting_broadcast"] = True
+        return
+
+    if data == "confirm_broadcast":
+        message = context.user_data.get("pending_broadcast_message")
+        if message:
+            success, failed = await broadcast_message(context, message)
+            await query.message.reply_text(f"✅ تم الإرسال لـ {success} مستخدم، وفشل مع {failed}.")
+        else:
+            await query.message.reply_text("❗ لا يوجد رسالة معلقة.")
+        return
+
+    if data == "search_series":
+        await query.message.reply_text("🔍 اكتب اسم المسلسل اللي عايز تدور عليه:")
+        context.user_data["awaiting_series_search"] = True
+        return
+
+    if data == "back":
+        await start(update, context)
+        return
+
     if data.startswith("series|"):
-        _, series_raw = data.split("|")
-        series_name = unsanitize_callback(series_raw)
+        _, series_name = data.split("|", 1)
         seasons = series_data.get(series_name, {}).get("seasons", {})
 
         if not seasons:
             await query.message.reply_text("❌ لا يوجد مواسم لهذا المسلسل.")
             return
 
-        # ✅ سجل دخول المستخدم للمسلسل
         log_usage(user, "open_series", series_name)
 
         keyboard = [
-            [InlineKeyboardButton(season, callback_data=f"season|{series_raw}|{sanitize_callback(season)}")]
+            [InlineKeyboardButton(season, callback_data=f"season|{series_name}|{season}")]
             for season in seasons
         ]
-        keyboard.append([InlineKeyboardButton("🔙 رجوع", callback_data="admin")])
+        keyboard.append([InlineKeyboardButton("🔙 رجوع", callback_data="back")])
         await query.message.reply_text(f"📂 مواسم مسلسل: {series_name}", reply_markup=InlineKeyboardMarkup(keyboard))
 
     elif data.startswith("season|"):
-        _, series_raw, season_raw = data.split("|")
-        series_name = unsanitize_callback(series_raw)
-        season_name = unsanitize_callback(season_raw)
+        parts = data.split("|")
+        if len(parts) >= 3:
+            _, series_name, season_name = parts[:3]
+        else:
+            await query.message.reply_text("❌ بيانات غير صالحة.")
+            return
+
         episodes = series_data.get(series_name, {}).get("seasons", {}).get(season_name, [])
 
         if not episodes:
             await query.message.reply_text("❌ لا يوجد حلقات في هذا الموسم.")
             return
 
-        # ✅ سجل دخول المستخدم للموسم
         log_usage(user, "open_season", f"{series_name} - {season_name}")
 
         keyboard = generate_episode_buttons(series_name, season_name, episodes)
         await query.message.reply_text(f"🎬 الحلقات ({season_name}):", reply_markup=InlineKeyboardMarkup(keyboard))
 
     elif data.startswith("episode|"):
-        _, series_raw, episode_num = data.split("|")
-        series_name = unsanitize_callback(series_raw)
+        parts = data.split("|")
+        if len(parts) >= 3:
+            _, series_name, episode_num = parts[:3]
+        else:
+            await query.message.reply_text("❌ بيانات غير صالحة.")
+            return
 
         episodes = series_data.get(series_name, {}).get("episodes", {})
         episode_info = episodes.get(episode_num)
@@ -318,30 +367,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             caption = f"{series_name} - حلقة {episode_num}"
             await query.message.reply_video(video_id, caption=caption)
 
-            # ✅ سجل مشاهدة المستخدم للحلقة
             log_usage(user, "view", f"{series_name} - حلقة {episode_num}")
-
-    elif data == "back":
-        await admin_panel(update, context)
-
-    elif data == "admin_broadcast":
-        await query.message.reply_text("✏️ اكتب الآن محتوى الإعلان اللي عايز تبعته لكل المستخدمين:")
-        context.user_data["awaiting_broadcast"] = True
-
-    elif data == "confirm_broadcast":
-        message = context.user_data.get("pending_broadcast_message")
-        if message:
-            success, failed = await broadcast_message(context, message)
-            await query.message.reply_text(f"✅ تم الإرسال لـ {success} مستخدم، وفشل مع {failed}.")
-        else:
-            await query.message.reply_text("❗ لا يوجد رسالة معلقة.")
-    elif data == "search_series":
-        await query.message.reply_text("🔍 اكتب اسم المسلسل اللي عايز تدور عليه:")
-        context.user_data["awaiting_series_search"] = True
-    elif data == "back":
-        await start(update, context)
-
-
 
 # ========== /add ==========
 async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
