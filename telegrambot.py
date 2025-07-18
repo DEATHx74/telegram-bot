@@ -284,100 +284,110 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await list_series(update, context)
         return
 
-    elif data == "admin_logs":
+    if data == "admin_logs":
         await show_logs(update, context)
         return
 
-    elif data == "admin_stats":
-        stats = get_usage_stats()
-        keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🔙 الرجوع", callback_data="admin")]
-        ])
-        await query.edit_message_text(stats, parse_mode="HTML", reply_markup=keyboard)
+    if data == "admin_add":
+        await query.message.reply_text("استخدم الأمر `/add اسم_المسلسل رقم_الحلقة` لإضافة حلقة جديدة.", parse_mode="Markdown")
         return
 
-    elif data.startswith("series|"):
-        _, series_raw = data.split("|", 1)
-        series_name = unsanitize_callback(series_raw)
+    if data == "admin_delete":
+        await query.message.reply_text("استخدم الأمر `/delete اسم_المسلسل رقم_الحلقة` لحذف حلقة.", parse_mode="Markdown")
+        return
 
-        seasons = series_data.get(series_name, {})
 
-        if not seasons:
-            await query.message.reply_text("❌ لا يوجد مواسم لهذا المسلسل.")
+    # استرجاع الاسم الحقيقي من البيانات (من أول تطابق موجود)
+    def find_series_name(short_name):
+        for name in series_data:
+            if sanitize_callback(name) == short_name:
+                return name
+        return None
+
+    if data == "back_to_series":
+        series_names = list(series_data.keys())
+        buttons = []
+
+        for i in range(0, len(series_names), SERIES_PER_ROW):
+            row = [
+                InlineKeyboardButton(series_name, callback_data=f"series|{sanitize_callback(series_name)}")
+                for series_name in series_names[i:i + SERIES_PER_ROW]
+            ]
+            buttons.append(row)
+
+        await query.message.edit_text("📺 اختار المسلسل اللي عايز تشوفه:", reply_markup=InlineKeyboardMarkup(buttons))
+        return
+
+
+    if data.startswith("back_to_seasons|"):
+        _, short_series = data.split("|")
+        series_name = find_series_name(short_series)
+        if not series_name:
+            await query.message.edit_text("❌ تعذر عرض المواسم.")
             return
+        buttons = generate_season_buttons(series_data, series_name)
+        await query.message.edit_text(f"📂 اختار الموسم من {series_name}:", reply_markup=InlineKeyboardMarkup(buttons))
+        return
 
-        log_usage(user, "open_series", series_name)
-
-        keyboard = [
-            [InlineKeyboardButton(season, callback_data=f"season|{series_raw}|{sanitize_callback(season)}")]
-            for season in seasons
-        ]
-        keyboard.append([InlineKeyboardButton("🔙 رجوع", callback_data="admin")])
-        await query.message.reply_text(f"📂 مواسم مسلسل: {series_name}", reply_markup=InlineKeyboardMarkup(keyboard))
-
-    elif data.startswith("season|"):
-        try:
-            _, series_raw, season_raw = data.split("|", 2)
-            series_name = unsanitize_callback(series_raw)
-            season_name = unsanitize_callback(season_raw)
-
-            episodes = series_data.get(series_name, {}).get(season_name, {})
-
-            if not isinstance(episodes, dict) or not episodes:
-                await query.message.reply_text("❌ لا يوجد حلقات في هذا الموسم.")
-                return
-
-            log_usage(user, "open_season", f"{series_name} - {season_name}")
-
-            keyboard = generate_episode_buttons(episodes, series_name, season_name)
-            await query.message.reply_text(f"🎬 الحلقات ({season_name}):", reply_markup=InlineKeyboardMarkup(keyboard))
-
-        except ValueError:
-            await query.message.reply_text("❌ بيانات غير صالحة.")
+    if data.startswith("series|"):
+        _, short_series = data.split("|")
+        series_name = find_series_name(short_series)
+        if not series_name:
+            await query.message.edit_text("❌ تعذر عرض المسلسل.")
             return
+        buttons = generate_season_buttons(series_data, series_name)
+        await query.message.edit_text(f"📂 اختار الموسم من {series_name}:", reply_markup=InlineKeyboardMarkup(buttons))
+        return
 
-    elif data.startswith("episode|"):
-        try:
-            _, series_raw, season_raw, episode_num = data.split("|", 3)
-            series_name = unsanitize_callback(series_raw)
-            season_name = unsanitize_callback(season_raw)
-
-            episode_info = series_data.get(series_name, {}).get(season_name, {}).get(episode_num)
-
-            if episode_info:
-                chat_id = episode_info.get("chat_id")
-                message_id = episode_info.get("message_id")
-
-                if chat_id and message_id:
-                    await context.bot.forward_message(
-                        chat_id=update.effective_chat.id,
-                        from_chat_id=chat_id,
-                        message_id=message_id
-                    )
-                    log_usage(user, "view", f"{series_name} - {season_name} - حلقة {episode_num}")
-                else:
-                    await query.message.reply_text("❌ بيانات الحلقة ناقصة.")
-            else:
-                await query.message.reply_text("❌ لم يتم العثور على الحلقة.")
-
-        except ValueError:
-            await query.message.reply_text("❌ بيانات غير صالحة.")
+    if data.startswith("season|"):
+        parts = data.split("|")
+        short_series = parts[1]
+        short_season = parts[2]
+        page = int(parts[3]) if len(parts) > 3 else 0
+        series_name = find_series_name(short_series)
+        if not series_name:
+            await query.message.edit_text("❌ تعذر عرض الحلقات.")
             return
+        season_name = None
+        for s in series_data[series_name]:
+            if sanitize_callback(s) == short_season:
+                season_name = s
+                break
+        if not season_name:
+            await query.message.edit_text("❌ الموسم غير موجود.")
+            return
+        episodes = series_data[series_name][season_name]
+        buttons = generate_episode_buttons(episodes, series_name, season_name, page)
+        await query.message.edit_text(f"🎬 اختار الحلقة من {series_name} - {season_name}:", reply_markup=InlineKeyboardMarkup(buttons))
+        return
 
-    elif data == "back_to_series":
-        await start(update, context)
-
-    elif data == "admin_broadcast":
-        await query.message.reply_text("✏️ اكتب الآن محتوى الإعلان اللي عايز تبعته لكل المستخدمين:")
-        context.user_data["awaiting_broadcast"] = True
-
-    elif data == "confirm_broadcast":
-        message = context.user_data.get("pending_broadcast_message")
-        if message:
-            success, failed = await broadcast_message(context, message)
-            await query.message.reply_text(f"✅ تم الإرسال لـ {success} مستخدم، وفشل مع {failed}.")
-        else:
-            await query.message.reply_text("❗ لا يوجد رسالة معلقة.")
+    if data.startswith("episode|"):
+        _, short_series, short_season, ep_number = data.split("|")
+        series_name = find_series_name(short_series)
+        if not series_name:
+            await query.message.reply_text("❌ المسلسل غير موجود.")
+            return
+        season_name = None
+        for s in series_data[series_name]:
+            if sanitize_callback(s) == short_season:
+                season_name = s
+                break
+        if not season_name:
+            await query.message.reply_text("❌ الموسم غير موجود.")
+            return
+        episode = series_data.get(series_name, {}).get(season_name, {}).get(ep_number.strip())
+        if not episode:
+            await query.message.reply_text("⚠️ الحلقة غير موجودة.")
+            return
+        log_usage(user, "watch_episode", f"{series_name} - {season_name} - حلقة {ep_number}")
+        await context.bot.forward_message(
+            chat_id=query.message.chat_id,
+            from_chat_id=episode["chat_id"],
+            message_id=episode["message_id"]
+        )
+        await query.message.reply_text("🎬 تم عرض الحلقة.", reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("🏠 رجوع للقائمة", callback_data="back_to_series")]
+        ]))
 
 # ========== /add ==========
 async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
