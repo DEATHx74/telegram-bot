@@ -1,6 +1,7 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, ContextTypes, filters
-import json, os
+import json
+import os
 import re
 from datetime import datetime
 
@@ -103,10 +104,47 @@ def generate_episode_buttons(episodes: dict, series_name: str, season_name: str,
         buttons.append(nav_buttons)
     buttons.append([InlineKeyboardButton("🔙 رجوع", callback_data=f"back_to_seasons|{sanitize_callback(series_name)}")])
     return buttons
-# ========== /start ==========
 
+# ========== broadcast ==========
+async def broadcast_message(context: ContextTypes.DEFAULT_TYPE, message: str):
+    try:
+        with open("users.json", "r") as f:
+            users = json.load(f)
+    except FileNotFoundError:
+        users = []
+
+    success, failed = 0, 0
+
+    for user_id in users:
+        try:
+            await context.bot.send_message(chat_id=user_id, text=message)
+            success += 1
+            await asyncio.sleep(0.05)  # تفادي الحظر
+        except Exception as e:
+            failed += 1
+            print(f"❌ فشل مع {user_id}: {e}")
+
+    print(f"✅ تم الإرسال لـ {success}، وفشل مع {failed}")
+
+# ========== /start ==========
+# دالة لحفظ user_id في ملف users.json
+def save_user(user_id):
+    try:
+        with open("users.json", "r") as f:
+            users = json.load(f)
+    except FileNotFoundError:
+        users = []
+
+    if user_id not in users:
+        users.append(user_id)
+        with open("users.json", "w") as f:
+            json.dump(users, f)
+
+# دالة /start بعد التعديل
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
+
+    # تحقق من الاشتراك
     if not await is_user_subscribed(user.id, context):
         keyboard = InlineKeyboardMarkup([
             [InlineKeyboardButton("📢 إشترك في القناة من هنا", url="https://t.me/+TjSNl-DGAYgyYjc0")],
@@ -116,14 +154,22 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⚠️ لازم تشترك في القناة عشان تقدر تستخدم البوت.", reply_markup=keyboard)
         return
 
+    # تسجل المستخدم الجديد
+    save_user(user.id)
+
+    # تسجيل الاستخدام
     log_usage(user, "start")
+
+    # تحميل البيانات
     series_data = load_series_data()
     if not series_data:
         await update.message.reply_text("📂 مفيش مسلسلات مضافة حتى الآن.")
         return
 
+    # توليد أزرار المسلسلات
     buttons = [[InlineKeyboardButton(series_name, callback_data=f"series|{sanitize_callback(series_name)}")]
                for series_name in series_data]
+
     await update.message.reply_text("📺 اختار المسلسل اللي عايز تشوفه:", reply_markup=InlineKeyboardMarkup(buttons))
 
 # ========== الضغطات ==========
@@ -416,15 +462,33 @@ async def show_logs(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await (update.message or update.callback_query.message).reply_text(text)
 
+# ========== /broadcast ==========
+async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+
+    if not is_admin(user.id):
+        await update.message.reply_text("❌ مش مسموحلك تستخدم الأمر ده.")
+        return
+
+    if not context.args:
+        await update.message.reply_text("❗ اكتب الرسالة بعد الأمر، مثال:\n`/broadcast فيه مسلسل جديد 🔥`", parse_mode="Markdown")
+        return
+
+    message = " ".join(context.args)
+    await update.message.reply_text("⏳ جاري إرسال الرسالة لكل المستخدمين...")
+    await broadcast_message(context, message)
+    await update.message.reply_text("✅ تم إرسال الرسالة.")
+
 # ========== تشغيل البوت ==========
 
 async def set_commands(app):
     await app.bot.set_my_commands([
         BotCommand("start", "بدء البوت"),
-        BotCommand("add", "إضافة حلقة"),
-        BotCommand("list", "قائمة المسلسلات"),
         BotCommand("admin", "لوحة التحكم"),
+        BotCommand("broadcast", "إرسال رسالة لكل المستخدمين"),
         BotCommand("logs", "سجل الاستخدام"),
+        BotCommand("list", "قائمة المسلسلات"),
+        BotCommand("add", "إضافة حلقة"),
         BotCommand("delete", "حذف حلقة"),
     ])
 
@@ -432,10 +496,12 @@ app = ApplicationBuilder().token(TOKEN).post_init(set_commands).build()
 
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("admin", admin_panel))
+app.add_handler(CommandHandler("broadcast", broadcast_command))
 app.add_handler(CommandHandler("list", list_series))
 app.add_handler(CommandHandler("add", add))
 app.add_handler(CommandHandler("delete", delete_episode))
 app.add_handler(CommandHandler("logs", show_logs))
+
 
 app.add_handler(CallbackQueryHandler(button_handler))
 
