@@ -329,7 +329,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             log_usage(user, "open_season", f"{series_name} - {season_name}")
 
-            keyboard = generate_episode_buttons(series_name, season_name, episodes)
+            keyboard = generate_episode_buttons(episodes, series_name, season_name)
             await query.message.reply_text(f"🎬 الحلقات ({season_name}):", reply_markup=InlineKeyboardMarkup(keyboard))
 
         except ValueError:
@@ -338,23 +338,26 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     elif data.startswith("episode|"):
         try:
-            _, series_raw, episode_num = data.split("|", 2)
+            _, series_raw, season_raw, episode_num = data.split("|", 3)
             series_name = unsanitize_callback(series_raw)
+            season_name = unsanitize_callback(season_raw)
 
-            series_info = series_data.get(series_name, {})
-            found = False
-            for season_name, season_data in series_info.items():
-                if episode_num in season_data:
-                    episode_info = season_data[episode_num]
-                    video_id = episode_info.get("file_id")
-                    if video_id:
-                        caption = f"{series_name} - {season_name} - حلقة {episode_num}"
-                        await query.message.reply_video(video_id, caption=caption)
-                        log_usage(user, "view", f"{series_name} - {season_name} - حلقة {episode_num}")
-                        found = True
-                        break
+            episode_info = series_data.get(series_name, {}).get(season_name, {}).get(episode_num)
 
-            if not found:
+            if episode_info:
+                chat_id = episode_info.get("chat_id")
+                message_id = episode_info.get("message_id")
+
+                if chat_id and message_id:
+                    await context.bot.forward_message(
+                        chat_id=update.effective_chat.id,
+                        from_chat_id=chat_id,
+                        message_id=message_id
+                    )
+                    log_usage(user, "view", f"{series_name} - {season_name} - حلقة {episode_num}")
+                else:
+                    await query.message.reply_text("❌ بيانات الحلقة ناقصة.")
+            else:
                 await query.message.reply_text("❌ لم يتم العثور على الحلقة.")
 
         except ValueError:
@@ -363,7 +366,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     elif data == "back_to_series":
         await start(update, context)
-
 
     elif data == "admin_broadcast":
         await query.message.reply_text("✏️ اكتب الآن محتوى الإعلان اللي عايز تبعته لكل المستخدمين:")
@@ -376,7 +378,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.message.reply_text(f"✅ تم الإرسال لـ {success} مستخدم، وفشل مع {failed}.")
         else:
             await query.message.reply_text("❗ لا يوجد رسالة معلقة.")
-
 
 # ========== /add ==========
 async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
