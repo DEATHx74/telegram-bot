@@ -231,6 +231,8 @@ async def handle_series_search(update: Update, context: ContextTypes.DEFAULT_TYP
 
     keyboard.append([InlineKeyboardButton("🔙 رجوع", callback_data="back")])
 
+    await update.message.reply_text("🔎 نتائج البحث:", reply_markup=InlineKeyboardMarkup(keyboard))
+
 
 # ========== /start ==========
 # دالة لحفظ user_id في ملف users.json
