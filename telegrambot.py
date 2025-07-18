@@ -229,7 +229,8 @@ async def handle_series_search(update: Update, context: ContextTypes.DEFAULT_TYP
             _, series_name, ep_num, season_name = item
             keyboard.append([InlineKeyboardButton(f"🎞 {series_name} - {season_name} - حلقة {ep_num}", callback_data=f"episode|{series_name}|{ep_num}")])
 
-    keyboard.append([InlineKeyboa]()
+    keyboard.append([InlineKeyboardButton("🔙 رجوع", callback_data="back")])
+
 
 # ========== /start ==========
 # دالة لحفظ user_id في ملف users.json
