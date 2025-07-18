@@ -343,7 +343,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.message.reply_text("❌ بيانات غير صالحة.")
             return
 
-        episodes = series_data.get(series_name, {}).get("seasons", {}).get(season_name, [])
+        episodes = series_data.get(series_name, {}).get(season_name, {})
 
         if not episodes:
             await query.message.reply_text("❌ لا يوجد حلقات في هذا الموسم.")
